@@ -1,0 +1,8 @@
+[2024-10-02 00:05:52,482: INFO: logger: This is a test]
+[2024-10-02 00:55:25,280: INFO: logger: This is a test]
+[2024-10-02 00:55:25,628: INFO: utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.]
+[2024-10-02 00:55:25,628: INFO: utils: NumExpr defaulting to 8 threads.]
+[2024-10-02 00:55:29,014: INFO: data_ingestion: Data Ingestion has Started!]
+[2024-10-02 00:55:31,478: INFO: data_ingestion: Data is Ingested!]
+[2024-10-02 00:55:31,478: INFO: data_ingestion: Train, Test Split started]
+[2024-10-02 00:55:31,529: INFO: data_ingestion: Train Test split is done!]
