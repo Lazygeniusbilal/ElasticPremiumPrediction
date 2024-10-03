@@ -17,7 +17,7 @@ class ModelTrainer:
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
 
-    def model_training(self, x_train: pd.DataFrame, x_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series):
+    def model_training(self, x_train: pd.DataFrame,  y_train: pd.Series):
         logging.info("Initializing the LGBMRegressor!")
         model = LGBMRegressor()
 
@@ -39,7 +39,7 @@ try:
     
     # Initialize the model trainer and train the model
     obj = ModelTrainer()
-    obj.model_training(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test)
+    obj.model_training(x_train=x_train, y_train=y_train)
 
 except Exception as e:
     raise CustomException(str(e), sys)
