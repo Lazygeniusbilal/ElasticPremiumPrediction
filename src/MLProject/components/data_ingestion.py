@@ -1,11 +1,6 @@
 import os
 import sys
 
-# Determine the root directory of your project
-# Assuming this script is in src/MLProject/components
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'))  
-sys.path.append(project_root)  # Add the project root to the system path
-
 # Now you can import your modules
 from src.MLProject.logger.logger import logging
 from src.MLProject.exception.exception import CustomException
@@ -46,4 +41,4 @@ try:
     obj.split_data_into_train_and_test()
 
 except Exception as e:
-    CustomException(sys, e)
+    raise CustomException(sys, e)

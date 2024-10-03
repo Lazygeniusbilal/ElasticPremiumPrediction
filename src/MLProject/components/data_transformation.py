@@ -1,49 +1,97 @@
 import os
 import sys
-
-# Determine the root directory of your project
-# Assuming this script is in src/MLProject/components
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'))  
-sys.path.append(project_root)  # Add the project root to the system path
-
-# Now you can import your modules
-from src.MLProject.logger.logger import logging
-from src.MLProject.exception.exception import CustomException
 import pandas as pd
-from sklearn.model_selection import train_test_split
-import os
+import numpy as np
+from dataclasses import dataclass
+from src.MLProject.exception.exception import CustomException
+from src.MLProject.logger.logger import logging
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+import joblib
 
-class DataIngestion:
-    
+@dataclass
+class DataTransformationConfig:
+    preprocessor_object_file_path = os.path.join("artifacts", "preprocessor.pkl")
+
+class DataTransformation:
+
     def __init__(self):
-        self.root_directory = "artifacts"
-        self.raw_data_directory = "artifacts/raw_data.csv"
-        self.train_data_directory = "artifacts/train_data.csv"
-        self.test_data_directory = "artifacts/test_data.csv"
-    
-    def data_ingestion(self):
-        logging.info("Data Ingestion has Started!")
-        # read the dataset from the url
-        data = pd.read_csv("https://github.com/yakobodata/Athena_motor_insurance/raw/refs/heads/main/motor_insurance_dataset.csv")
-        # now make a directory for it to store as raw
-        os.makedirs(self.root_directory, exist_ok=True)
-        # now store the data into that destination
-        data.to_csv(self.raw_data_directory, index=False)
-        logging.info("Data is Ingested!")
-    
-    def split_data_into_train_and_test(self):
-        logging.info("Train, Test Split started")
-        data = pd.read_csv(self.raw_data_directory)  # Read the raw data before splitting
-        train_data, test_data = train_test_split(data, test_size=0.25)
-        # add the data into their respective destinations
-        train_data.to_csv(self.train_data_directory, index=False)
-        test_data.to_csv(self.test_data_directory, index=False)
-        logging.info("Train Test split is done!")
+        self.data_transformation_config = DataTransformationConfig()
+
+    def data_transformation_pipeline(self):
+        # Selecting the numerical and categorical columns
+        logging.info("Separating the numerical and categorial columns")
+
+        # Numerical and categorical pipeline construction
+        logging.info("Initializing the pipeline construction!")
+        num_pipeline = Pipeline(
+            steps=[("scaler", StandardScaler())]
+        )
+        cat_pipeline = Pipeline(
+            steps=[("Encoder", OneHotEncoder())]
+        )
+
+        logging.info("Pipeline Construction is done!")
+
+        # Merging the numerical and categorical pipelines
+        preprocessor = ColumnTransformer([
+            ("num_pipeline", num_pipeline, make_column_selector(dtype_include=np.number)),
+            ("cat_pipeline", cat_pipeline, make_column_selector(dtype_include=object))
+        ])
+
+        # Create the directory to save the preprocessor object
+        os.makedirs(os.path.dirname(self.data_transformation_config.preprocessor_object_file_path), exist_ok=True)
+
+        # Saving the preprocessor object
+        joblib.dump(preprocessor, self.data_transformation_config.preprocessor_object_file_path)
+        logging.info(f"Preprocessor object saved at {self.data_transformation_config.preprocessor_object_file_path}")
+
+        return preprocessor
+
+    def data_transformation(self, train_data_path, test_data_path):
+        logging.info("Reading the training and testing datasets!")
+
+        # Load the datasets
+        train_data = pd.read_csv(train_data_path)
+        test_data = pd.read_csv(test_data_path)
+
+        logging.info("Splitting the features and target columns of both train and test!")
+        target_column = "Premium Price"
+
+        # Splitting train and test into features and target
+        train_data_features = train_data.drop(columns=target_column, axis=1)
+        train_data_target = train_data[target_column]
+
+        test_data_features = test_data.drop(target_column, axis=1)
+        test_data_target = test_data[target_column]
+
+        logging.info("Initializing the preprocessor!")
+
+        # Initialize the preprocessor
+        preprocessor_obj = self.data_transformation_pipeline()
+
+        logging.info("Applying the preprocessor on both dataset features!")
+
+        # Transform the datasets
+        train_data_array = preprocessor_obj.fit_transform(train_data_features)
+        test_data_array = preprocessor_obj.transform(test_data_features)
+
+        logging.info("Removing the existing columns from the dataset which are transformed!")
+        # Remove the original columns (already transformed)
+        train_data = train_data.drop(columns=train_data_features.columns, axis=1)
+        test_data = test_data.drop(columns=test_data_features.columns, axis=1)
+
+        # Convert the transformed data from array to dataframe
+        logging.info("Converting the transformed array into dataframe!")
+        train_data_transformed = pd.DataFrame(train_data_array, columns=preprocessor_obj.get_feature_names_out())
+        test_data_transformed = pd.DataFrame(test_data_array, columns=preprocessor_obj.get_feature_names_out())
+
+        return train_data_transformed, test_data_transformed, train_data_target, test_data_target
 
 try:
-    obj = DataIngestion()
-    obj.data_ingestion()
-    obj.split_data_into_train_and_test()
+    obj = DataTransformation()
+    obj.data_transformation(train_data_path="artifacts/train_data.csv", test_data_path="artifacts/test_data.csv")
 
 except Exception as e:
-    CustomException(sys, e)
+    raise CustomException(str(e), sys.exc_info())
